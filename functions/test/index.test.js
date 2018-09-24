@@ -9,10 +9,19 @@ describe('Cloud Functions', () => {
 
   describe('dialogflowFirebaseFulfillment', () => {
     it('should return the right text result', async () => {
-      assert.equal(await myFunctions.callWeatherApi('Paris').then(output => output),
-        'Aujourd\'hui à Paris, France la température maximale est de 18°C et la température minimale est de 11°C');
+      const regExp = /Aujourd'hui à Paris, France la température maximale est de \d*°C et la température minimale est de \d*°C/;
+      assert.ok(regExp.test(await myFunctions.callWeatherApi('Paris').then(output => output).catch(() => 'error')));
     });
   });
+
+  describe('dialogflowFirebaseFulfillment', () => {
+    it('should return an error', async () => {
+      assert.equal(await myFunctions.callWeatherApi('BLBLBLB').then(output => output).catch(() => 'error'),
+        'No weather data for the city BLBLBLB');
+    });
+  });
+
+  // TODO test with giveWeather
 
   // describe('dialogflowFirebaseFulfillment', () => {
   //   it('should return a 200 code', (done) => {

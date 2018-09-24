@@ -20,26 +20,32 @@ function callWeatherApi(city, date) {
     if (date) {
       path += `&date=${date}`;
     }
-    console.log(`API Request: ${host}${path}`);
-
     // Make the HTTP request to get the weather
     http.get({ host, path }, res => {
       let body = ''; // var to store the response chunks
       res.on('data', d => {
         body += d;
       }); // store each response chunk
+
       res.on('end', () => {
-        // After all the data has been received parse the JSON for desired data
-        const wwoResponse = JSON.parse(body);
-        const forecast = wwoResponse.data.weather[0];
-        const location = wwoResponse.data.request[0];
+        try {
+          // After all the data has been received parse the JSON for desired data
+          const wwoResponse = JSON.parse(body);
+          if (!wwoResponse.data.weather) throw new Error(`No weather data for the city ${city}`);
+          if (!wwoResponse.data.request) throw new Error(`No location data for the city ${city}`);
+          const forecast = wwoResponse.data.weather[0];
+          const location = wwoResponse.data.request[0];
 
-        // Create response
-        const output = `Aujourd'hui à ${location.query} la température maximale est de ${forecast.maxtempC}°C et la température minimale est de ${forecast.mintempC}°C`;
+          // Create response
+          const output = `Aujourd'hui à ${location.query} la température maximale est de ${forecast.maxtempC}°C et la température minimale est de ${forecast.mintempC}°C`;
 
-        // Resolve the promise with the output text
-        console.log(output);
-        resolve(output);
+          // Resolve the promise with the output text
+          console.log(output);
+          resolve(output);
+        } catch (e) {
+          console.log(e);
+          resolve(e.message);
+        }
       });
       res.on('error', error => {
         console.log(`Error calling the weather API: ${error}`);
@@ -50,6 +56,7 @@ function callWeatherApi(city, date) {
 }
 
 async function giveWeather(agent) {
+  console.log(agent);
   const { city } = agent.parameters;
   const date = '';
   // Call the weather API
@@ -71,3 +78,4 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 });
 
 exports.callWeatherApi = callWeatherApi;
+exports.giveWeather = giveWeather;

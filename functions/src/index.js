@@ -20,24 +20,30 @@ function callWeatherApi(city: string, date?: string): Promise<string> {
     if (date) {
       path += `&date=${date}`;
     }
-    console.log(`API Request: ${host}${path}`);
-
     // Make the HTTP request to get the weather
     http.get({ host, path }, (res) => {
       let body = ''; // var to store the response chunks
       res.on('data', (d) => { body += d; }); // store each response chunk
+
       res.on('end', () => {
-        // After all the data has been received parse the JSON for desired data
-        const wwoResponse = JSON.parse(body);
-        const forecast = wwoResponse.data.weather[0];
-        const location = wwoResponse.data.request[0];
+        try {
+          // After all the data has been received parse the JSON for desired data
+          const wwoResponse = JSON.parse(body);
+          if (!wwoResponse.data.weather) throw new Error(`No weather data for the city ${city}`);
+          if (!wwoResponse.data.request) throw new Error(`No location data for the city ${city}`);
+          const forecast: { maxtempC: string, mintempC: string } = wwoResponse.data.weather[0];
+          const location: { query: string } = wwoResponse.data.request[0];
 
-        // Create response
-        const output = `Aujourd'hui à ${location.query} la température maximale est de ${forecast.maxtempC}°C et la température minimale est de ${forecast.mintempC}°C`;
+          // Create response
+          const output: string = `Aujourd'hui à ${location.query} la température maximale est de ${forecast.maxtempC}°C et la température minimale est de ${forecast.mintempC}°C`;
 
-        // Resolve the promise with the output text
-        console.log(output);
-        resolve(output);
+          // Resolve the promise with the output text
+          console.log(output);
+          resolve(output);
+        } catch (e) {
+          console.log(e);
+          resolve(e.message);
+        }
       });
       res.on('error', (error) => {
         console.log(`Error calling the weather API: ${error}`);
@@ -48,6 +54,7 @@ function callWeatherApi(city: string, date?: string): Promise<string> {
 }
 
 async function giveWeather(agent): Promise<void> {
+  console.log(agent);
   const { city }: {city: string} = agent.parameters;
   const date: string = '';
   // Call the weather API
@@ -58,7 +65,7 @@ async function giveWeather(agent): Promise<void> {
   });
 }
 
-exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, response) => {
+exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, response): void => {
   const agentHook = new WebhookClient({ request, response });
   console.log(`Dialogflow Request headers: ${JSON.stringify(request.headers)}`);
   console.log(`Dialogflow Request body: ${JSON.stringify(request.body)}`);
@@ -69,3 +76,4 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 });
 
 exports.callWeatherApi = callWeatherApi;
+exports.giveWeather = giveWeather;
